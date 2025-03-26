@@ -1,11 +1,15 @@
 import 'package:assignment_cs/Screens/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'Screens/home_screen.dart';
 import 'model/financial_data_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
 
   // Initialize Hive
   await Hive.initFlutter();
@@ -24,6 +28,6 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Placeholder(child: MaterialApp(home: SignUpScreen()));
+    return MaterialApp(home: AuthScreen());
   }
 }

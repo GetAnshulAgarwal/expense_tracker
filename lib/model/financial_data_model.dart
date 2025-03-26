@@ -24,6 +24,9 @@ class TransactionModel extends HiveObject {
 
   @HiveField(6)
   late String wallet;
+
+  @HiveField(7)
+  late String userId; // New field to tag the transaction with the user's UID
 }
 
 @HiveType(typeId: 1)

@@ -9,9 +9,8 @@ import 'expense_screen.dart';
 import 'income_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  final User? user; // New field to receive the logged-in user
-
-  const DashboardScreen({Key? key, this.user}) : super(key: key);
+  final User user; // now required
+  const DashboardScreen({Key? key, required this.user}) : super(key: key);
 
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -35,18 +34,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadFinancialData();
   }
 
+  // Load financial data specific to the logged-in user
   void _loadFinancialData() {
-    final existingSummary = summaryBox.get('financialSummary');
+    final existingSummary = summaryBox.get(
+      '${widget.user.uid}_financialSummary',
+    );
 
     setState(() {
       accountBalance = existingSummary?.accountBalance ?? 38000;
       income = existingSummary?.totalIncome ?? 50000;
       expenses = existingSummary?.totalExpenses ?? 12000;
       recentTransactions =
-          transactionsBox.values.toList().reversed.take(4).toList();
+          transactionsBox.values
+              .where((transaction) => transaction.userId == widget.user.uid)
+              .toList()
+              .reversed
+              .take(4)
+              .toList();
     });
   }
 
+  // Update the financials for the current user only
   void _updateFinancials(Map<String, dynamic>? newTransaction, bool isIncome) {
     if (newTransaction != null) {
       final transaction =
@@ -57,7 +65,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ..time = DateTime.now().toString().substring(11, 16)
             ..type = isIncome ? 'income' : 'expense'
             ..description = newTransaction['description'] ?? ''
-            ..wallet = newTransaction['wallet'] ?? '';
+            ..wallet = newTransaction['wallet'] ?? ''
+            ..userId = widget.user.uid; // tag with the current user id
 
       transactionsBox.add(transaction);
 
@@ -81,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ..totalIncome = income
               ..totalExpenses = expenses;
 
-        summaryBox.put('financialSummary', summary);
+        summaryBox.put('${widget.user.uid}_financialSummary', summary);
       });
     }
   }
@@ -151,9 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 10),
             CircleAvatar(
               radius: 20,
-              backgroundImage: AssetImage(
-                'assets/profile.jpg',
-              ), // Change to network image if needed
+              backgroundImage: AssetImage('assets/profile.jpg'),
             ),
           ],
         ),
