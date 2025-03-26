@@ -1,80 +1,113 @@
 import 'package:flutter/material.dart';
 
-class CustomBottomNavigation extends StatefulWidget {
-  const CustomBottomNavigation({Key? key}) : super(key: key);
+class CustomBottomNavigation extends StatelessWidget {
+  /// The index of the currently selected item.
+  final int currentIndex;
 
-  @override
-  _CustomBottomNavigationState createState() => _CustomBottomNavigationState();
-}
+  /// Called when a navigation item is tapped, providing the [index].
+  final ValueChanged<int> onTap;
 
-class _CustomBottomNavigationState extends State<CustomBottomNavigation> {
-  int _selectedIndex = 0;
+  /// Creates a custom bottom nav with 5 'slots':
+  /// [0] Home, [1] Transaction, [2] + Button, [3] Budget, [4] Profile
+  const CustomBottomNavigation({
+    Key? key,
+    this.currentIndex = 0,
+    required this.onTap,
+  }) : super(key: key);
+
+  // Purple color from your screenshot: #7F3DFF
+  static const Color _purpleColor = Color(0xFF7F3DFF);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -2),
+      height: 80, // total height of the bottom nav
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Left group: Home (index 0), Transaction (index 1)
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(icon: Icons.home_filled, label: 'Home', index: 0),
+                _buildNavItem(
+                  icon: Icons.compare_arrows_rounded,
+                  label: 'Transaction',
+                  index: 1,
+                ),
+              ],
+            ),
+          ),
+
+          // Center big button (Plus) at index 2
+          _buildCenterButton(),
+
+          // Right group: Budget (index 3), Profile (index 4)
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(
+                  icon: Icons.pie_chart_rounded,
+                  label: 'Budget',
+                  index: 3,
+                ),
+                _buildNavItem(
+                  icon: Icons.person_2_rounded,
+                  label: 'Profile',
+                  index: 4,
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      child: BottomAppBar(
-        elevation: 0,
-        color: Colors.transparent,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home_rounded, 0),
-            _buildNavItem(Icons.bar_chart_rounded, 1),
-            _buildCenterAddButton(),
-            _buildNavItem(Icons.wallet_rounded, 2),
-            _buildNavItem(Icons.person_rounded, 3),
-          ],
+    );
+  }
+
+  /// Builds a navigation item with an icon and label.
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final bool isSelected = (currentIndex == index);
+
+    return GestureDetector(
+      onTap: () => onTap(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isSelected ? _purpleColor : Colors.grey),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isSelected ? _purpleColor : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the large circular button in the center with a plus icon.
+  Widget _buildCenterButton() {
+    return GestureDetector(
+      onTap: () => onTap(2),
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: const BoxDecoration(
+          color: _purpleColor,
+          shape: BoxShape.circle,
         ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, int index) {
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: _selectedIndex == index ? Colors.purple : Colors.grey,
-        size: 25,
-      ),
-      onPressed: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
-    );
-  }
-
-  Widget _buildCenterAddButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.purple,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purple.withOpacity(0.4),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.add, color: Colors.white, size: 25),
-        onPressed: () {
-          // Add transaction logic
-        },
+        child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
     );
   }

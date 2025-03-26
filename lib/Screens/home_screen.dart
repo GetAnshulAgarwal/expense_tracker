@@ -1,15 +1,18 @@
+import 'package:assignment_cs/transactions/transaction_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
 import '../color.dart';
 import '../model/financial_data_model.dart';
 import '../widgets/bottom_navigation.dart';
-import '../widgets/transaction_item.dart';
+import '../transactions/transaction_item.dart';
 import 'expense_screen.dart';
 import 'income_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  final User user; // now required
+  final User user; // required user
+
   const DashboardScreen({Key? key, required this.user}) : super(key: key);
 
   @override
@@ -44,12 +47,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       accountBalance = existingSummary?.accountBalance ?? 38000;
       income = existingSummary?.totalIncome ?? 50000;
       expenses = existingSummary?.totalExpenses ?? 12000;
+      // Load all transactions for the user
       recentTransactions =
           transactionsBox.values
               .where((transaction) => transaction.userId == widget.user.uid)
               .toList()
               .reversed
-              .take(4)
               .toList();
     });
   }
@@ -79,10 +82,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           accountBalance -= transaction.amount;
         }
 
+        // Insert new transaction at the beginning
         recentTransactions.insert(0, transaction);
-        if (recentTransactions.length > 4) {
-          recentTransactions = recentTransactions.take(4).toList();
-        }
 
         final summary =
             FinancialSummary()
@@ -116,13 +117,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 20),
                 _buildRecentTransactionsHeader(),
                 const SizedBox(height: 10),
-                _buildRecentTransactions(),
+                _buildRecentTransactions(), // Scrollable list now in a fixed-height container
               ],
             ),
           ),
         ),
       ),
-      bottomNavigationBar: const CustomBottomNavigation(),
+      bottomNavigationBar: CustomBottomNavigation(
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 4) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(user: widget.user),
+              ),
+            );
+          }
+          // Add additional logic for other indexes if needed.
+          print('Tapped index: $index');
+        },
+      ),
     );
   }
 
@@ -314,23 +329,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: Colors.black87,
           ),
         ),
-        Text(
-          'See All',
-          style: TextStyle(
-            color: Colors.purple[700],
-            fontWeight: FontWeight.w500,
+        // Wrap "See All" text in a GestureDetector to navigate to the AllTransactionsScreen
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) =>
+                        AllTransactionsScreen(transactions: recentTransactions),
+              ),
+            );
+          },
+          child: Text(
+            'See All',
+            style: TextStyle(
+              color: Colors.purple[700],
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
     );
   }
 
+  // Now, display all transactions in a scrollable list inside a fixed-height container.
   Widget _buildRecentTransactions() {
-    return Column(
-      children:
-          recentTransactions
-              .map((transaction) => TransactionItem(transaction: transaction))
-              .toList(),
+    return Container(
+      height: 300,
+      child: ListView.builder(
+        itemCount: recentTransactions.length,
+        itemBuilder: (context, index) {
+          return TransactionItem(transaction: recentTransactions[index]);
+        },
+      ),
     );
   }
 }
