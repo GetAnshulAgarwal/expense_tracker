@@ -10,6 +10,7 @@ class TransactionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -22,35 +23,77 @@ class TransactionItem extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: _getTransactionColor().withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
+      child: Row(
+        children: [
+          // Icon with light background
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _getTransactionColor().withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(_getTransactionIcon(), color: _getTransactionColor()),
           ),
-          child: Icon(_getTransactionIcon(), color: _getTransactionColor()),
-        ),
-        title: Text(
-          transaction.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+          const SizedBox(width: 12),
+
+          // Title & Description on the left
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title (e.g. Shopping)
+                Text(
+                  transaction.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Description (if any)
+                if (transaction.description.isNotEmpty)
+                  Text(
+                    transaction.description,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+              ],
+            ),
           ),
-        ),
-        subtitle: Text(
-          transaction.time,
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-        trailing: Text(
-          '₹${transaction.amount}',
-          style: TextStyle(
-            color: transaction.type == 'income' ? Colors.green : Colors.red,
-            fontWeight: FontWeight.bold,
+
+          // Amount & Time on the right
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Amount with a minus sign for expense
+              Text(
+                _formatAmount(),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      transaction.type == 'income' ? Colors.green : Colors.red,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Time
+              Text(
+                transaction.time,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
           ),
-        ),
+        ],
       ),
     );
+  }
+
+  String _formatAmount() {
+    if (transaction.type == 'expense') {
+      return '-₹${transaction.amount}';
+    } else {
+      return '₹${transaction.amount}';
+    }
   }
 
   IconData _getTransactionIcon() {
@@ -60,7 +103,7 @@ class TransactionItem extends StatelessWidget {
       case 'subscription':
         return Icons.subscriptions_outlined;
       case 'travel':
-        return Icons.travel_explore;
+        return Icons.directions_car_filled;
       case 'food':
         return Icons.fastfood_outlined;
       default:

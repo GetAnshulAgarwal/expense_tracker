@@ -1,19 +1,22 @@
-import 'package:assignment_cs/transactions/transaction_screen.dart';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive/hive.dart';
-import '../color.dart';
+import 'package:intl/intl.dart';
 import '../model/financial_data_model.dart';
-import '../widgets/bottom_navigation.dart';
 import '../transactions/transaction_item.dart';
+import '../transactions/transaction_screen.dart';
+import '../widgets/bottom_navigation.dart';
 import 'expense_screen.dart';
 import 'income_screen.dart';
 import 'profile_screen.dart';
 
+enum DateRangeFilter { today, week, month, year }
+
 class DashboardScreen extends StatefulWidget {
   final User user; // required user
 
-  const DashboardScreen({Key? key, required this.user}) : super(key: key);
+  const DashboardScreen({super.key, required this.user});
 
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -23,7 +26,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late double accountBalance;
   late double income;
   late double expenses;
-  List<TransactionModel> recentTransactions = [];
+
+  // Full list of user's transactions (unfiltered)
+  List<TransactionModel> allUserTransactions = [];
+
+  // The currently selected date range filter
+  DateRangeFilter _selectedFilter = DateRangeFilter.today;
+
   final Box<FinancialSummary> summaryBox = Hive.box<FinancialSummary>(
     'summaryBox',
   );
@@ -37,18 +46,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadFinancialData();
   }
 
-  // Load financial data specific to the logged-in user
+  /// Load financial data for the logged-in user.
   void _loadFinancialData() {
     final existingSummary = summaryBox.get(
       '${widget.user.uid}_financialSummary',
     );
 
     setState(() {
-      accountBalance = existingSummary?.accountBalance ?? 38000;
-      income = existingSummary?.totalIncome ?? 50000;
-      expenses = existingSummary?.totalExpenses ?? 12000;
-      // Load all transactions for the user
-      recentTransactions =
+      accountBalance = existingSummary?.accountBalance ?? 0;
+      income = existingSummary?.totalIncome ?? 0;
+      expenses = existingSummary?.totalExpenses ?? 0;
+
+      // Load ALL transactions (reverse order for most recent first)
+      allUserTransactions =
           transactionsBox.values
               .where((transaction) => transaction.userId == widget.user.uid)
               .toList()
@@ -57,19 +67,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // Update the financials for the current user only
+  /// Update the financials when a new transaction is added.
   void _updateFinancials(Map<String, dynamic>? newTransaction, bool isIncome) {
     if (newTransaction != null) {
+      final now = DateTime.now();
+      final formattedTime = DateFormat.Hm().format(now); // e.g., "14:35"
+
       final transaction =
           TransactionModel()
             ..title = newTransaction['category']
             ..category = newTransaction['description'] ?? ''
             ..amount = newTransaction['amount']
-            ..time = DateTime.now().toString().substring(11, 16)
+            ..time =
+                formattedTime // set the time string
+            ..date =
+                now // set the full DateTime
             ..type = isIncome ? 'income' : 'expense'
             ..description = newTransaction['description'] ?? ''
             ..wallet = newTransaction['wallet'] ?? ''
-            ..userId = widget.user.uid; // tag with the current user id
+            ..userId = widget.user.uid;
 
       transactionsBox.add(transaction);
 
@@ -83,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         // Insert new transaction at the beginning
-        recentTransactions.insert(0, transaction);
+        allUserTransactions.insert(0, transaction);
 
         final summary =
             FinancialSummary()
@@ -96,29 +112,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  /// Returns transactions that fall within the selected date range.
+  List<TransactionModel> get filteredTransactions {
+    final now = DateTime.now();
+    DateTime startDate;
+
+    switch (_selectedFilter) {
+      case DateRangeFilter.today:
+        startDate = DateTime(now.year, now.month, now.day);
+        break;
+      case DateRangeFilter.week:
+        final weekday = now.weekday;
+        startDate = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: weekday - 1));
+        break;
+      case DateRangeFilter.month:
+        startDate = DateTime(now.year, now.month, 1);
+        break;
+      case DateRangeFilter.year:
+        startDate = DateTime(now.year, 1, 1);
+        break;
+    }
+
+    return allUserTransactions.where((tx) {
+      return tx.date.isAfter(startDate.subtract(const Duration(seconds: 1)));
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                _buildTopBar(),
-                const SizedBox(height: 20),
-                _buildBalanceSection(),
-                const SizedBox(height: 20),
-                _buildIncomeExpenseSection(),
-                const SizedBox(height: 20),
-                _buildRecentTransactionsHeader(),
-                const SizedBox(height: 10),
-                _buildRecentTransactions(), // Scrollable list now in a fixed-height container
-              ],
+      // Entire screen with a gradient background
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            transform: GradientRotation(183.33 * pi / 180),
+            colors: [
+              const Color(0xFFFFF6E6), // #FFF6E6
+              Color.fromRGBO(248, 237, 216, 0), // rgba(248,237,216,0)
+            ],
+            stops: const [0.0956, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  _buildTopBar(),
+                  const SizedBox(height: 20),
+                  _buildIncomeExpenseSection(),
+                  const SizedBox(height: 20),
+                  _buildDateRangeFilter(),
+                  const SizedBox(height: 20),
+                  _buildRecentTransactionsHeader(),
+                  const SizedBox(height: 10),
+                  _buildRecentTransactions(),
+                ],
+              ),
             ),
           ),
         ),
@@ -134,76 +192,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             );
           }
-          // Add additional logic for other indexes if needed.
-          print('Tapped index: $index');
+          // Additional navigation logic can be added for other indexes.
         },
       ),
     );
   }
 
+  /// Top Bar: Avatar, Month Dropdown, Notification Icon, and Account Balance.
   Widget _buildTopBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'October',
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundImage: const AssetImage('assets/profile.jpg'),
               ),
-            ),
-            const Icon(Icons.keyboard_arrow_down_rounded),
-          ],
-        ),
-        Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(30),
+              Row(
+                children: [
+                  Text(
+                    DateFormat('MMMM').format(DateTime.now()),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.grey[700],
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.all(8),
-              child: Icon(
+              Icon(
                 Icons.notifications_none_rounded,
-                color: Colors.grey[700],
+                color: const Color(0xFF7F3DFF),
               ),
-            ),
-            const SizedBox(width: 10),
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: AssetImage('assets/profile.jpg'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBalanceSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Account Balance',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+            ],
           ),
-        ),
-        Text(
-          '₹$accountBalance',
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+          const SizedBox(height: 20),
+          Text(
+            'Account Balance',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            '₹$accountBalance',
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -317,6 +367,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildDateRangeFilter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildDateFilterButton(DateRangeFilter.today, 'Today'),
+        _buildDateFilterButton(DateRangeFilter.week, 'Week'),
+        _buildDateFilterButton(DateRangeFilter.month, 'Month'),
+        _buildDateFilterButton(DateRangeFilter.year, 'Year'),
+      ],
+    );
+  }
+
+  Widget _buildDateFilterButton(DateRangeFilter filter, String label) {
+    final bool isSelected = (_selectedFilter == filter);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF0DC) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.orange : Colors.grey,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecentTransactionsHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -329,15 +416,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: Colors.black87,
           ),
         ),
-        // Wrap "See All" text in a GestureDetector to navigate to the AllTransactionsScreen
         GestureDetector(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder:
-                    (context) =>
-                        AllTransactionsScreen(transactions: recentTransactions),
+                    (context) => AllTransactionsScreen(
+                      transactions: filteredTransactions,
+                    ),
               ),
             );
           },
@@ -353,14 +440,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Now, display all transactions in a scrollable list inside a fixed-height container.
   Widget _buildRecentTransactions() {
-    return Container(
+    final transactionsToShow = filteredTransactions;
+    return SizedBox(
       height: 300,
       child: ListView.builder(
-        itemCount: recentTransactions.length,
+        itemCount: transactionsToShow.length,
         itemBuilder: (context, index) {
-          return TransactionItem(transaction: recentTransactions[index]);
+          return TransactionItem(transaction: transactionsToShow[index]);
         },
       ),
     );

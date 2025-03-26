@@ -13,8 +13,9 @@ class TransactionModel extends HiveObject {
   @HiveField(2)
   late double amount;
 
+  // Instead of `late String time;`, assign a default value.
   @HiveField(3)
-  late String time;
+  String time = '';
 
   @HiveField(4)
   late String type; // "income" or "expense"
@@ -26,7 +27,11 @@ class TransactionModel extends HiveObject {
   late String wallet;
 
   @HiveField(7)
-  late String userId; // New field to tag the transaction with the user's UID
+  late String userId; // tag the transaction with the user's UID
+
+  // New field for full DateTime
+  @HiveField(8)
+  DateTime date = DateTime.now();
 }
 
 @HiveType(typeId: 1)
