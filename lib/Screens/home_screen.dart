@@ -228,10 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              Icon(
-                Icons.notifications_none_rounded,
-                color: const Color(0xFF7F3DFF),
-              ),
+              Icon(Icons.notifications_rounded, color: const Color(0xFF7F3DFF)),
             ],
           ),
           const SizedBox(height: 20),
