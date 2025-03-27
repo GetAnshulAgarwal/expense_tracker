@@ -71,17 +71,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _updateFinancials(Map<String, dynamic>? newTransaction, bool isIncome) {
     if (newTransaction != null) {
       final now = DateTime.now();
-      final formattedTime = DateFormat.Hm().format(now); // e.g., "14:35"
+      final formattedTime = DateFormat.Hm().format(now);
 
       final transaction =
           TransactionModel()
             ..title = newTransaction['category']
             ..category = newTransaction['description'] ?? ''
             ..amount = newTransaction['amount']
-            ..time =
-                formattedTime // set the time string
-            ..date =
-                now // set the full DateTime
+            ..time = formattedTime
+            ..date = now
             ..type = isIncome ? 'income' : 'expense'
             ..description = newTransaction['description'] ?? ''
             ..wallet = newTransaction['wallet'] ?? ''
@@ -142,6 +140,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }).toList();
   }
 
+  /// Delete a transaction given its key and update the financial totals.
+  void deleteTransaction(dynamic key) {
+    setState(() {
+      // Find the transaction to delete.
+      TransactionModel? transactionToDelete;
+      try {
+        transactionToDelete = transactionsBox.values.firstWhere(
+          (tx) => tx.key == key,
+        );
+      } catch (e) {
+        return; // Exit if not found
+      }
+
+      // Update financial totals based on the transaction type.
+      if (transactionToDelete != null) {
+        if (transactionToDelete.type == 'income') {
+          income -= transactionToDelete.amount;
+          accountBalance -= transactionToDelete.amount;
+        } else if (transactionToDelete.type == 'expense') {
+          expenses -= transactionToDelete.amount;
+          accountBalance += transactionToDelete.amount;
+        }
+      }
+
+      // Remove the transaction from the local list.
+      allUserTransactions.removeWhere((tx) => tx.key == key);
+
+      // Delete the transaction from Hive.
+      try {
+        transactionToDelete?.delete();
+      } catch (e) {
+        // Handle deletion error if necessary.
+      }
+
+      // Update the summary box with new financial totals.
+      final summary =
+          FinancialSummary()
+            ..accountBalance = accountBalance
+            ..totalIncome = income
+            ..totalExpenses = expenses;
+      summaryBox.put('${widget.user.uid}_financialSummary', summary);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,10 +192,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             transform: GradientRotation(183.33 * pi / 180),
-            colors: [
-              const Color(0xFFFFF6E6), // #FFF6E6
-              Color.fromRGBO(248, 237, 216, 0), // rgba(248,237,216,0)
-            ],
+            colors: [const Color(0xFFFFF6E6), Color.fromRGBO(248, 237, 216, 0)],
             stops: const [0.0956, 1.0],
           ),
         ),
@@ -192,13 +231,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             );
           }
-          // Additional navigation logic can be added for other indexes.
         },
       ),
     );
   }
 
-  /// Top Bar: Avatar, Month Dropdown, Notification Icon, and Account Balance.
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -209,7 +246,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundImage: const AssetImage('assets/profile.jpg'),
+                backgroundImage: const AssetImage(
+                  'assets/images/cipherx_logo.png',
+                ),
               ),
               Row(
                 children: [
@@ -421,6 +460,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 builder:
                     (context) => AllTransactionsScreen(
                       transactions: filteredTransactions,
+                      onDelete: (key) {
+                        // Use the same deletion logic as in your dashboard.
+                        deleteTransaction(key);
+                      },
                     ),
               ),
             );
@@ -444,7 +487,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: ListView.builder(
         itemCount: transactionsToShow.length,
         itemBuilder: (context, index) {
-          return TransactionItem(transaction: transactionsToShow[index]);
+          return TransactionItem(
+            transaction: transactionsToShow[index],
+            onDelete: (key) {
+              // Delete the transaction using the provided key
+              deleteTransaction(key);
+            },
+          );
         },
       ),
     );

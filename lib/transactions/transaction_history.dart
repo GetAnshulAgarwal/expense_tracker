@@ -45,7 +45,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: allTransactions.length,
         itemBuilder: (context, index) {
-          return TransactionItem(transaction: allTransactions[index]);
+          return TransactionItem(
+            transaction: allTransactions[index],
+            onDelete: (_) {}, // Dummy callback; deletion not enabled here.
+          );
         },
       ),
     );
