@@ -244,7 +244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             '₹$accountBalance',
             style: const TextStyle(
-              fontSize: 32,
+              fontSize: 52,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -270,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFF4CAF50),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -324,7 +324,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFF44336),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
