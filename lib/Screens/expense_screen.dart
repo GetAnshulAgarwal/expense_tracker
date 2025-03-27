@@ -55,7 +55,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       return;
     }
 
-    // Proceed with income recording logic
+    // Proceed with expense recording logic
     Navigator.of(context).pop({
       'amount': amount,
       'category': _selectedCategory,
@@ -67,6 +67,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFF0077FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -81,80 +82,102 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         ),
         centerTitle: true,
       ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 100),
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 80),
-                const Text(
-                  'How much?',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-                TextField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.left,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
+            // Top Section: "How much?" and the large amount input
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'How much?',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
-                  decoration: const InputDecoration(
-                    prefixText: '₹ ',
-                    prefixStyle: TextStyle(
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    maxLines: 1,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                     ),
-                    border: InputBorder.none,
-                    hintText: '0',
-                    hintStyle: TextStyle(color: Colors.white54),
+                    decoration: const InputDecoration(
+                      prefixText: '₹ ',
+                      prefixStyle: TextStyle(
+                        color: Colors.white,
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      border: InputBorder.none,
+                      hintText: '0',
+                      hintStyle: TextStyle(color: Colors.white54),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-              ),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildDropdown(
-                    'Category',
-                    _categories,
-                    _selectedCategory,
-                    (value) => setState(() => _selectedCategory = value),
-                  ),
-                  const SizedBox(height: 15),
-                  _buildDescriptionField(),
-                  const SizedBox(height: 15),
-                  _buildDropdown(
-                    'Wallet',
-                    _wallets,
-                    _selectedWallet,
-                    (value) => setState(() => _selectedWallet = value),
-                  ),
-                  const Spacer(),
-                  _buildContinueButton(),
                 ],
               ),
             ),
-          ),
-        ],
+            // White Bottom Section with pinned "Continue" button using a Stack
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Scrollable content for Category, Description, and Wallet
+                    SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        20,
+                        20,
+                        MediaQuery.of(context).viewInsets.bottom + 100,
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildDropdown(
+                            'Category',
+                            _categories,
+                            _selectedCategory,
+                            (value) =>
+                                setState(() => _selectedCategory = value),
+                          ),
+                          const SizedBox(height: 15),
+                          _buildDescriptionField(),
+                          const SizedBox(height: 15),
+                          _buildDropdown(
+                            'Wallet',
+                            _wallets,
+                            _selectedWallet,
+                            (value) => setState(() => _selectedWallet = value),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                    // Positioned "Continue" button at the bottom of the white section
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 20,
+                      child: _buildContinueButton(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -166,20 +189,32 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     Function(String?) onChanged,
   ) {
     return Container(
+      height: 60,
       decoration: BoxDecoration(
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(10),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          hint: Text(label, style: const TextStyle(color: Colors.black54)),
-          value: selectedValue,
           isExpanded: true,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.black54, fontSize: 16),
+            ),
+          ),
+          value: selectedValue,
           items:
               items
                   .map(
-                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(item, style: const TextStyle(fontSize: 16)),
+                      ),
+                    ),
                   )
                   .toList(),
           onChanged: onChanged,
@@ -189,15 +224,24 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   }
 
   Widget _buildDescriptionField() {
-    return TextField(
-      controller: _descriptionController,
-      decoration: InputDecoration(
-        hintText: 'Description',
-        filled: true,
-        fillColor: Colors.grey[200],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: TextField(
+        controller: _descriptionController,
+        maxLines: null,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          hintText: 'Description',
+          hintStyle: const TextStyle(color: Colors.black54),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 15,
+          ),
         ),
       ),
     );

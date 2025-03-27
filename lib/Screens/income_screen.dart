@@ -44,7 +44,6 @@ class _IncomeScreenState extends State<IncomeScreen> {
       return;
     }
 
-    // Proceed with income recording logic
     Navigator.of(context).pop({
       'amount': amount,
       'category': _selectedCategory,
@@ -62,40 +61,29 @@ class _IncomeScreenState extends State<IncomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFF7B61FF),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Income',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Custom App Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const Spacer(),
-                  const Text(
-                    'Income',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  const SizedBox(width: 40), // Balance the row
-                ],
-              ),
-            ),
+            SizedBox(height: 100),
 
-            // "How much?" Section
+            // Purple Top Section: "How much?" + big amount input
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -106,7 +94,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   TextField(
                     controller: _amountController,
                     keyboardType: TextInputType.number,
-                    textAlign: TextAlign.left,
+                    maxLines: 1,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 48,
@@ -128,7 +116,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
               ),
             ),
 
-            // White Bottom Sheet
+            // White Bottom Section
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -138,27 +126,50 @@ class _IncomeScreenState extends State<IncomeScreen> {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                // We use a Stack so we can pin the "Continue" button at the bottom
+                child: Stack(
                   children: [
-                    _buildDropdown(
-                      'Category',
-                      _categories,
-                      _selectedCategory,
-                      (value) => setState(() => _selectedCategory = value),
+                    // Scrollable content for category, description, wallet
+                    SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        20,
+                        20,
+                        MediaQuery.of(context).viewInsets.bottom + 100,
+                        // Extra bottom padding so fields aren't covered by the button
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildDropdown(
+                            'Category',
+                            _categories,
+                            _selectedCategory,
+                            (value) =>
+                                setState(() => _selectedCategory = value),
+                          ),
+                          const SizedBox(height: 15),
+                          _buildDescriptionField(),
+                          const SizedBox(height: 15),
+                          _buildDropdown(
+                            'Wallet',
+                            _wallets,
+                            _selectedWallet,
+                            (value) => setState(() => _selectedWallet = value),
+                          ),
+                          const SizedBox(height: 20),
+                          // Add more fields if needed
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 15),
-                    _buildDescriptionField(),
-                    const SizedBox(height: 15),
-                    _buildDropdown(
-                      'Wallet',
-                      _wallets,
-                      _selectedWallet,
-                      (value) => setState(() => _selectedWallet = value),
+                    // Positioned "Continue" button at the bottom
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 20,
+                      child: _buildContinueButton(),
                     ),
-                    const Spacer(),
-                    _buildContinueButton(),
                   ],
                 ),
               ),
@@ -176,7 +187,7 @@ class _IncomeScreenState extends State<IncomeScreen> {
     Function(String?) onChanged,
   ) {
     return Container(
-      height: 60, // Consistent height
+      height: 60,
       decoration: BoxDecoration(
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(10),
@@ -184,10 +195,12 @@ class _IncomeScreenState extends State<IncomeScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           isExpanded: true,
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          hint: Text(
-            label,
-            style: const TextStyle(color: Colors.black54, fontSize: 16),
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.black54, fontSize: 16),
+            ),
           ),
           value: selectedValue,
           items:
@@ -195,7 +208,10 @@ class _IncomeScreenState extends State<IncomeScreen> {
                   .map(
                     (item) => DropdownMenuItem(
                       value: item,
-                      child: Text(item, style: const TextStyle(fontSize: 16)),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(item, style: const TextStyle(fontSize: 16)),
+                      ),
                     ),
                   )
                   .toList(),
@@ -206,21 +222,21 @@ class _IncomeScreenState extends State<IncomeScreen> {
   }
 
   Widget _buildDescriptionField() {
-    return TextField(
-      controller: _descriptionController,
-      style: const TextStyle(fontSize: 16),
-      decoration: InputDecoration(
-        hintText: 'Description',
-        hintStyle: const TextStyle(color: Colors.black54),
-        filled: true,
-        fillColor: Colors.grey[200],
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: 20,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: TextField(
+        controller: _descriptionController,
+        maxLines: null,
+        style: const TextStyle(fontSize: 16),
+        decoration: const InputDecoration(
+          hintText: 'Description',
+          hintStyle: TextStyle(color: Colors.black54),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
         ),
       ),
     );
